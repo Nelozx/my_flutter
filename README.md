@@ -21,14 +21,20 @@ my_flutter_app/
 
 ### 1. 本地生成签名密钥
 
-```bash
+Windows（PowerShell，推荐）：
+```powershell
 cd my_flutter_app
+powershell -ExecutionPolicy Bypass -File scripts\setup-signing.ps1
+```
+
+macOS / Linux / Git Bash：
+```bash
 bash scripts/setup-signing.sh
 ```
 
 按提示输入密码。脚本会：
 - 生成 `android/app/upload-keystore.jks` 和 `android/key.properties`（都已 gitignore）
-- 打印 4 个值，用于下一步填 GitHub Secrets
+- 打印 4 个值，用于下一步填 GitHub Secrets（PowerShell 版会把 base64 直接复制到剪贴板）
 
 验证本地能出 release 包：
 ```bash
