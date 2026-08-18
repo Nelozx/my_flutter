@@ -1,5 +1,8 @@
 allprojects {
     repositories {
+        // 国内镜像优先（阿里云），海外源兜底
+        maven("https://maven.aliyun.com/repository/google")
+        maven("https://maven.aliyun.com/repository/public")
         google()
         mavenCentral()
     }
