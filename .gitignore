@@ -11,6 +11,7 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+build_log.txt
 
 # IntelliJ related
 *.iml
