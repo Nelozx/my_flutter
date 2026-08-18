@@ -1,0 +1,83 @@
+name: Flutter Android CI/CD
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Analyze (zero warnings)
+        run: flutter analyze --no-pub --fatal-infos
+
+      - name: Test
+        run: flutter test --coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  build:
+    needs: quality
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Decode keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+
+      - name: Generate key.properties
+        run: |
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
+            "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            "${{ secrets.ANDROID_KEY_PASSWORD }}" \
+            "${{ secrets.ANDROID_KEY_ALIAS }}" > android/key.properties
+
+      - name: Build APK (per-ABI)
+        run: flutter build apk --release --split-per-abi
+
+      - name: Build AAB
+        run: flutter build appbundle --release
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-builds
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/flutter-bundle/*.aab
+
+      - name: Upload to Play Console (internal track)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo '${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}' > play-service-account.json
+          pip install --user fastlane
+          fastlane supply \
+            --aab build/app/outputs/flutter-bundle/release/app-release.aab \
+            --track internal \
+            --json_key play-service-account.json
