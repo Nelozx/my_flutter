@@ -77,12 +77,20 @@ jobs:
         if: env.KEYSTORE_B64 != ''
         run: flutter build appbundle --release
 
-      - name: Upload build artifacts
+      - name: Upload artifact (debug, no signing)
+        if: env.KEYSTORE_B64 == ''
         uses: actions/upload-artifact@v4
         with:
-          name: android-builds
+          name: android-debug-builds
+          path: build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: Upload artifact (release, signed)
+        if: env.KEYSTORE_B64 != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-builds
           path: |
-            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/flutter-apk/*release*.apk
             build/app/outputs/flutter-bundle/*.aab
 
       - name: Upload to Play Console (internal track)
